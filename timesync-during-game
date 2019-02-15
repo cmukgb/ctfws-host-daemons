@@ -69,7 +69,7 @@ udata['gend']   = None		# Last recorded end time
 
 client = mqtt.Client(userdata=udata)
 client.will_set("ctfws/dev/ctfwstimesyncd/beat", payload="dead", qos=2, retain=True)
-with open("timesync-password.txt") as pwf :
+with open("passwords/timesync-password.txt") as pwf :
     client.username_pw_set("ctfwstimesyncd", pwf.read())
 
 client.on_connect = on_connect

@@ -15,7 +15,7 @@ upd() {
     [ \( "x${TS}" = "x${LASTTS}" \) -a \( "x${HA}" = "x${LASTHA}" \) ] || {
       LASTTS="${TS}"; LASTHA="${HA}"
       echo mosquitto_pub -h "${BROKER}" \
-				-u ctfwsrulesd -P $(cat inotifywait-password.txt) \
+				-u ctfwsrulesd -P $(cat passwords/inotifywait-password.txt) \
         -t ctfws/rules/handbook/html -m "${HANDURL} ${TS} ${HA}" -r
     }
   }
