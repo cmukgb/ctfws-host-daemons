@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -e -u
+
+BROKER=kgb.club.cc.cmu.edu
+HANDFILE=/var/www/web_kgb_ctfws/handbook.html
+HANDURL=http://www.cmukgb.org/activities/ctfws/handbook.html
+
+LASTTS=""
+LASTHA=""
+upd() {
+  [ -r "${HANDFILE}" ] && {
+    TS=$(stat --format=%Y "${HANDFILE}")
+    HA=$(sha256sum "${HANDFILE}" | cut -d ' ' -f 1)
+    [ \( "x${TS}" = "x${LASTTS}" \) -a \( "x${HA}" = "x${LASTHA}" \) ] || {
+      LASTTS="${TS}"; LASTHA="${HA}"
+      echo mosquitto_pub -h "${BROKER}" \
+				-u ctfwsrulesd -P $(cat inotifywait-password.txt) \
+        -t ctfws/rules/handbook/html -m "${HANDURL} ${TS} ${HA}" -r
+    }
+  }
+}
+
+# Forever, generate a stream of inotify events and for each line, push them
+# into upd().
+( while true; do
+
+  # Snag the stderr stream of inotifywatch too so that we catch its
+  # "Watches established" line.
+
+  inotifywait -e close_write,move_self,delete_self "${HANDFILE}" 2>&1
+done ; ) | while read i; do upd; done
