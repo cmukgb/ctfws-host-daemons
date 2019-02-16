@@ -4,7 +4,7 @@ set -e -u
 
 BROKER=kgb.club.cc.cmu.edu
 HANDFILE=/var/www/web_kgb_ctfws/handbook.html
-HANDURL=http://www.cmukgb.org/activities/ctfws/handbook.html
+HANDURL=http://www.cmukgb.org/ctfws/handbook.html
 
 LASTTS=""
 LASTHA=""
