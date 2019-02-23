@@ -1,24 +1,57 @@
-#!/bin/sh
+#!/bin/zsh
+
+# We assume that there is one directory under which everything lives ($FSPFX)
+# and that this directory is mapped into the webserver's space as $URLPFX; we
+# use relative paths for the handbook ($HANDRFN) and cheatsheet ($CSRFN) and
+# put those under the two PFXes.
+#
+# Set DRYRUN for local testing; it will echo the mosquitto command line rather
+# than actually run it.  When not dry-running, the mosquitto client password
+# will be read from $PWFILE (defaulting to passwords/inotifywait-password.txt).
+# The broker is given as $BROKER (defaulting to kgb.club.cc.cmu.edu).
+#
+# We generally assume that all files to be watched exist at the start of the
+# script (though we won't error out if they don't, we just won't start watching
+# them until some other event happens).
 
 set -e -u
 
-BROKER=kgb.club.cc.cmu.edu
-HANDFILE=/var/www/web_kgb_ctfws/handbook.html
-HANDURL=http://www.cmukgb.org/ctfws/handbook.html
+: "${BROKER:=kgb.club.cc.cmu.edu}"
+: "${FSPFX:=/var/www/web_kgb_ctfws}"
+: "${URLPFX:=http://www.cmukgb.org/ctfws}"
+: "${PWFILE:=passwords/inotifywait-password.txt}"
 
-LASTTS=""
-LASTHA=""
+[ -z "${DRYRUN+x}" -a \! -r "${PWFILE}" ] && {
+  echo "Can't run without password file '${PWFILE}'"
+  exit 1
+}
+
+  # MQTT topics, keyed by relative file name
+typeset -A WATCHES
+WATCHES=(
+	"${HANDRFN:=handbook.html}" ctfws/rules/handbook/html
+  "${CSRFN:=cheatsheet.pdf}"  ctfws/rules/cheatsheet/pdf
+)
+
+  # Last seen timestamps, keyed by relative file name
+typeset -A LASTTSS
+typeset -A LASTHAS
+
 upd() {
-  [ -r "${HANDFILE}" ] && {
-    TS=$(stat --format=%Y "${HANDFILE}")
-    HA=$(sha256sum "${HANDFILE}" | cut -d ' ' -f 1)
-    [ \( "x${TS}" = "x${LASTTS}" \) -a \( "x${HA}" = "x${LASTHA}" \) ] || {
-      LASTTS="${TS}"; LASTHA="${HA}"
-      mosquitto_pub -h "${BROKER}" \
-				-u ctfwsrulesd -P $(cat passwords/inotifywait-password.txt) \
-        -t ctfws/rules/handbook/html -m "${HANDURL} ${TS} ${HA}" -r
-    }
-  }
+  for k in "${(@k)WATCHES}"; do
+    if [ -r "${FSPFX}/${k}" ]; then
+      TS=$(stat --format=%Y "${FSPFX}/${k}")
+      HA=$(sha256sum "${FSPFX}/${k}" | cut -d ' ' -f 1)
+
+      if ! [ \( "x${TS}" = "x${LASTTSS[$k]:-}" \) -a \( "x${HA}" = "x${LASTHAS[$k]:-}" \) ]; then
+        LASTTSS+=("$k" "${TS}")
+        LASTHAS+=("$k" "${HA}")
+        ${DRYRUN+echo} mosquitto_pub -h "${BROKER}" \
+				  -u ctfwsrulesd -P $([ -n "${DRYRUN:+x}" ] || cat "${PWFILE}") \
+          -t "${WATCHES[$k]}" -r -m "${URLPFX}/${k} ${TS} ${HA}"
+		  fi
+	  fi
+  done
 }
 
 # Forever, generate a stream of inotify events and for each line, push them
@@ -28,5 +61,10 @@ upd() {
   # Snag the stderr stream of inotifywatch too so that we catch its
   # "Watches established" line.
 
-  inotifywait -e close_write,move_self,delete_self "${HANDFILE}" 2>&1
+  inotifywait -e close_write,move_self,delete_self \
+      "$FSPFX/${(@k)^WATCHES}" \
+			2>&1
+
+	# Limit update frequency
+	[ -n "${DRYRUN:-x}" ] || sleep 60
 done ; ) | while read i; do upd; done
