@@ -6,6 +6,8 @@ import threading
 import time
 import paho.mqtt.client as mqtt
 
+lwt_topic = "ctfws/dev/ctfwstimesyncd/beat"
+
 logging.basicConfig(level=logging.DEBUG)
 
 def schedthread(sched):
@@ -21,7 +23,7 @@ def on_connect(client, udata, flags, rc):
 	if rc != 0 : return
 	client.subscribe("ctfws/game/config", 1)
 	client.subscribe("ctfws/game/endtime", 1)
-	client.publish("ctfws/dev/timesyncd/beat", payload="alive", qos=2, retain=True)
+	client.publish(lwt_topic, payload="alive", qos=2, retain=True)
 
 def upd(client, udata):
 	logging.debug("upd: %r %r %r", udata['se'] is not None, udata['gstart'], udata['gend'])
@@ -68,7 +70,7 @@ udata['gstart'] = None		# Last recorded start time
 udata['gend']   = None		# Last recorded end time
 
 client = mqtt.Client(userdata=udata)
-client.will_set("ctfws/dev/ctfwstimesyncd/beat", payload="dead", qos=2, retain=True)
+client.will_set(lwt_topic, payload="dead", qos=2, retain=True)
 with open("passwords/timesync-password.txt") as pwf :
     client.username_pw_set("ctfwstimesyncd", pwf.read().rstrip())
 
