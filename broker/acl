@@ -1,0 +1,26 @@
+# global read permissions
+pattern read      ctfws/game/#
+pattern read      ctfws/dev/#
+topic   read      ctfws/timesync
+topic   read      ctfws/rules/#
+
+# the broker metadata can also be public
+pattern read      $SYS/#
+
+# allow devices to read configs and publish their topics
+pattern read      ctfws/devc/%u/#
+pattern readwrite ctfws/dev/%u/#
+
+# master write to all ctfws parameters
+user ctfwsmaster
+pattern readwrite ctfws/game/#
+pattern readwrite ctfws/judge/#
+pattern readwrite ctfws/devc/#
+
+# host to write timesync values
+user ctfwstimesyncd
+topic readwrite   ctfws/timesync
+
+# host to write rules values
+user ctfwsrulesd
+topic readwrite   ctfws/rules/#
