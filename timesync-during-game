@@ -30,9 +30,9 @@ def upd(client, udata):
 	if udata['se'] is not None :
 		udata['sched'].cancel(udata['se'])
 		udata['se'] = None
+		if udata['st'] is not None : udata['st'].join()
 
 	if udata['gstart'] is None:
-		if udata['st'] is not None : udata['st'].join()
 		return
 
 	if udata['gend'] is None or udata['gend'] <= udata['gstart'] :
@@ -52,7 +52,7 @@ def on_config_message(client, udata, msg):
 	if msg.payload == b"none" :
 		udata['gstart'] = None
 	else:
-		st, _ = str(msg.payload).split(r'\s+', 1)
+		st, _ = msg.payload.decode("utf-8").split(maxsplit=1)
 		udata['gstart'] = int(st)
 	upd(client, udata)
 
