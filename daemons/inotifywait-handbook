@@ -29,7 +29,7 @@ set -e -u
   # MQTT topics, keyed by relative file name
 typeset -A WATCHES
 WATCHES=(
-	"${HANDRFN:=handbook.html}" ctfws/rules/handbook/html
+  "${HANDRFN:=handbook.html}" ctfws/rules/handbook/html
   "${CSRFN:=cheatsheet.pdf}"  ctfws/rules/cheatsheet/pdf
 )
 
@@ -47,24 +47,21 @@ upd() {
         LASTTSS+=("$k" "${TS}")
         LASTHAS+=("$k" "${HA}")
         ${DRYRUN+echo} mosquitto_pub -h "${BROKER}" \
-				  -u ctfwsrulesd -P $([ -n "${DRYRUN:+x}" ] || cat "${PWFILE}") \
+          -u ctfwsrulesd -P $([ -n "${DRYRUN:+x}" ] || cat "${PWFILE}") \
           -t "${WATCHES[$k]}" -r -m "${URLPFX}/${k} ${TS} ${HA}"
-		  fi
-	  fi
+      fi
+    fi
   done
 }
 
-# Forever, generate a stream of inotify events and for each line, push them
-# into upd().
+# Forever, generate a stream of inotify events and for each line, call upd()
 ( while true; do
 
   # Snag the stderr stream of inotifywatch too so that we catch its
-  # "Watches established" line.
+  # "Watches established" line and use that as a fake driver of updates
+  # to close the gap between events.  It's better than nothing.
+  inotifywait -e close_write,move_self,delete_self "$FSPFX/${(@k)^WATCHES}" 2>&1
 
-  inotifywait -e close_write,move_self,delete_self \
-      "$FSPFX/${(@k)^WATCHES}" \
-			2>&1
-
-	# Limit update frequency
-	[ -n "${DRYRUN:-x}" ] || sleep 60
+  # Limit update frequency
+  [ -n "${DRYRUN:-x}" ] || sleep 60
 done ; ) | while read i; do upd; done
