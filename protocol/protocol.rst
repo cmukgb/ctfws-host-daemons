@@ -5,13 +5,11 @@ The CtFwS MQTT Protocol
 All numbers herein are base-10 encoded and devoid of leading zeros for ease
 of parsing.  Unless otherwise indicated, numbers are non-negative.
 
-``$DEVICENAME`` refers to the MQTT user identity given to the device in
-question.
-
-MQTT messages should be set persistent so that devices that reboot or lose their
-connection will display the right thing upon reconnection.  Most messages
-are designed to be idempotent, in the sense that they carry timestamps of
-their veracity, so out-of-order delivery is partially mitigated.
+MQTT messages should, unless otherwise indicated, be set persistent so that
+devices that reboot or lose their connection will display the right thing upon
+reconnection.  Most messages are designed to be idempotent, in the sense that
+they carry timestamps of their veracity, so out-of-order delivery is partially
+mitigated.
 
 Public, Centrally-set topics
 ############################
@@ -81,15 +79,16 @@ logins as well as our jail timers' users.
   before which messages should not be displayed.  This is useful in the
   event that the judges send out an incorrect message.
 
-There are some additional publicly-set topics not under ``ctfws/game`` as they
-do not pertain to a particular game, but rather to the world more generally:
+There are some additional public topics not under ``ctfws/game`` as they do not
+pertain to a particular game, but rather to the world more generally:
 
 * ``ctfws/timesync`` -- a single number, denoting POSIX seconds at the time of
   its publication.  The head judge's computer or the broker should publish to
   this topic periodically (every minute?) to assist clients in measuring their
   clock skew.  Clients must ignore retained messages on this topic, as they are
   by definition stale; messages should be published with QoS 0: a delayed
-  message is worse than no message.
+  message is worse than no message.  (See ``daemons/timesync-during-game`` for
+  our manager for this topic.)
 
 Rule Documentation URLs
 =======================
@@ -111,6 +110,9 @@ The following topics are defined:
   * ``ctfws/rules/handbook/html`` -- a single-HTML-page version of the handbook.
   * ``ctfws/rules/cheatsheet/pdf`` -- a PDF version of the "cheatsheet",
     a half-page or so summary of useful material.
+
+See ``daemons/inotifywait-handbook`` for a primitive, but sufficient,
+implementation of a script to maintain these topics' values.
 
 Private, Centrally-set topics
 #############################
@@ -140,9 +142,10 @@ player view.  These are set under the prefix ``ctfws/judge``.
      us if we ever have more than 94 (the printable ASCII set, minus space)
      flags in play.  The field need not be sorted.
 
-Some information is communicated from the judges to devices directly.  While
-there is no harm in players seeing this information, it is unlikely to be of
-interest:
+Some information is communicated from the judges to devices directly.  (In the
+following, ``$DEVICENAME`` refers to the MQTT user identity given to the device
+in question.)  While there is no harm in players seeing this information, it is
+unlikely to be of interest:
 
 * ``ctfws/devc/$DEVICENAME/location``  Reserved for device-specific
   configuration, in particular for parsing ``ctfws/game/config``'s
@@ -170,9 +173,22 @@ view of the world.
   * ``ap`` (MAC addr)
   * any additional fields are to be ignored.
 
-  The device should publish ``alive`` at gain of MQTT connectivity and
-  having registered a last will and testament to set the message ``dead``.
+  The device should use this as its last will and testament (LWT) topic, with
+  ``dead`` as the message, published QoS 2 and retained.  When a client
+  successfully connects to the broker, it should publish ``alive``.
   Thereafter, it should publish ``beat`` messages every minute.
 
   All fields other than the first are optional, with ``-`` being reserved for
   the case of optional fields being elided but later fields being specified.
+
+  Note that ``dead`` messages will not have a timestamp (or AP MAC address) due
+  to the mechanics of MQTT: the LWT message must be known at client connection
+  time and cannot be updated during the client's operation.  Historically,
+  ``alive`` messages have not included a timestamp either, perhaps to allow
+  SNTP synchronization during the first beat period.
+
+ACL
+###
+
+The file ``broker/acl`` gives a suitable mosquitto-compatible broker ACL for
+the topic tree given above.
