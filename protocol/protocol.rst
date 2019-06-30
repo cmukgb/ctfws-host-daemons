@@ -171,6 +171,8 @@ view of the world.
   * one of ``alive``, ``beat``, or ``dead``
   * ``time`` (UNIX time, from local clock)
   * ``ap`` (MAC addr)
+  * ``clocksource`` (structured; see below)
+  * ``timeskew`` (UNIX seconds)
   * any additional fields are to be ignored.
 
   The device should use this as its last will and testament (LWT) topic, with
@@ -186,6 +188,20 @@ view of the world.
   time and cannot be updated during the client's operation.  Historically,
   ``alive`` messages have not included a timestamp either, perhaps to allow
   SNTP synchronization during the first beat period.
+
+  In order to observe the behavior of clocks in the field, we have introduced
+  two new values, ``clocksource`` and ``timeskew``.  Both are optional, with
+  ``-`` defined, as usual, to indicate that the value is being skipped to
+  transmit later fields.  The ``clocksource`` field conveys which source of
+  time was used to last set the local clock, possibly the time value set, and
+  possibly the relative difference from source and local clock; the value is
+  reported as a source string (``sntp`` or ``mqtt`` are likely candidates),
+  an optional ``@`` followed by the UNIX seconds reported by the source, and
+  an optional ``+`` followed by the (signed) UNIX seconds delta from local
+  clock.  If present, the ``timeskew`` captures the number of
+  seconds difference between the local clock and the last ``timesync`` message
+  at time of receipt of the latter; if the ``timesync`` message is itself the
+  clock source, then this will equal the delta reported in ``clocksource``.
 
 ACL
 ###
