@@ -158,7 +158,7 @@ unlikely to be of interest:
 
 * ``ctfws/devc/$DEVICENAME/role``  Reserved for device-specific configuration.
   Jail timers should either not have this set or should use the reserved value
-  ``j``; other devices may be assigned other roles, should we ever branch out.
+  ``jail``; other devices may be assigned other roles, should we ever branch out.
 
 Device-set topics
 #################
