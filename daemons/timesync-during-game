@@ -30,7 +30,9 @@ def upd(client, udata):
 	if udata['se'] is not None :
 		udata['sched'].cancel(udata['se'])
 		udata['se'] = None
-		if udata['st'] is not None : udata['st'].join()
+		if udata['st'] is not None :
+			udata['st'].join()
+			udata['st'] = None
 
 	if udata['gstart'] is None:
 		return
