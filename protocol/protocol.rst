@@ -9,7 +9,8 @@ MQTT messages should, unless otherwise indicated, be set persistent so that
 devices that reboot or lose their connection will display the right thing upon
 reconnection.  Most messages are designed to be idempotent, in the sense that
 they carry timestamps of their veracity, so out-of-order delivery is partially
-mitigated.
+mitigated.  Timestamps are in UTC seconds which is easily obtained over the
+network using (S)NTP.
 
 Public, Centrally-set topics
 ############################
@@ -20,7 +21,7 @@ logins as well as our jail timers' users.
 
 * ``config`` the string ``none`` or a whitespace-separated series of fields:
 
-  * ``start_time`` -- POSIX seconds indicating start state
+  * ``start_time`` -- UTC seconds indicating start state
 
   * ``setup_duration`` -- setup duration, in seconds
 
@@ -48,12 +49,12 @@ logins as well as our jail timers' users.
 
   * any additional fields are to be ignored.
 
-* ``endtime`` -- a single number, denoting POSIX seconds of a
+* ``endtime`` -- a single number, denoting UTC seconds of a
   forced game end.  If this is larger than the last ``starttime`` gotten
   in a ``config`` message, then the game is considered over.
 
 * ``flags`` -- a whitespace-separated text field.  The first field is a
-  POSIX-seconds timestamp; subsequent fields are either the string ``?`` or:
+  UTC-seconds timestamp; subsequent fields are either the string ``?`` or:
 
   * ``red`` -- red team flag capture count (int, negatives OK)
  
@@ -62,7 +63,7 @@ logins as well as our jail timers' users.
   * any additional fields are to be ignored.
 
 * ``message`` -- Message to be displayed everywhere.  This and
-  all other ``message/#`` topics have a POSIX-seconds timestamp followed by
+  all other ``message/#`` topics have a UTC-seconds timestamp followed by
   whitespace before the message body.  These permit messages from previous
   games to be suppressed, should they end up resident on the MQTT broker.
 
@@ -75,14 +76,14 @@ logins as well as our jail timers' users.
 * ``message/jail/#`` -- Reserved for messages directed to a particular jail
   glyph; at present, our devices do not subscribe to these endpoints.
 
-* ``messagereset`` -- A single number, denoting POSIX seconds
+* ``messagereset`` -- A single number, denoting UTC seconds
   before which messages should not be displayed.  This is useful in the
   event that the judges send out an incorrect message.
 
 There are some additional public topics not under ``ctfws/game`` as they do not
 pertain to a particular game, but rather to the world more generally:
 
-* ``ctfws/timesync`` -- a single number, denoting POSIX seconds at the time of
+* ``ctfws/timesync`` -- a single number, denoting UTC seconds at the time of
   its publication.  The head judge's computer or the broker should publish to
   this topic periodically (every minute?) to assist clients in measuring their
   clock skew.  Clients must ignore retained messages on this topic, as they are
@@ -98,7 +99,7 @@ Messages for here are composed of whitespace-separated fields:
 
   * ``url`` -- a URL whence the document may be downloaded;
                (spaces are to be URL-encoded, naturally enough).
-  * ``time`` -- (integer) POSIX seconds at which the handbook was last modified
+  * ``time`` -- (integer) UTC seconds at which the handbook was last modified
   * ``sha256`` -- A hex encoding of the SHA256 of the handbook file.
 
 The ``time`` and ``sha256`` fields are to assist clients in suppressing fetches
