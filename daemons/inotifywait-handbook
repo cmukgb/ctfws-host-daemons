@@ -18,7 +18,7 @@ set -e -u
 
 : "${BROKER:=kgb.club.cc.cmu.edu}"
 : "${FSPFX:=/var/www/web_kgb_ctfws}"
-: "${URLPFX:=http://www.cmukgb.org/ctfws}"
+: "${URLPFX:=https://www.cmukgb.org/ctfws}"
 : "${PWFILE:=passwords/inotifywait-password.txt}"
 
 [ -z "${DRYRUN+x}" -a \! -r "${PWFILE}" ] && {
